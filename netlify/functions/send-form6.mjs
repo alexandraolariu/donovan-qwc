@@ -5,6 +5,17 @@ import crypto from 'node:crypto';
 
 const b64u = (x) => Buffer.from(x).toString('base64url');
 
+// Rebuild a clean PEM no matter how the key was pasted (spaces, \\n literals, collapsed lines)
+function pemKey() {
+  const raw = (process.env.DS_PRIVATE_KEY || '').replace(/\\n/g, '\n').trim();
+  if (!raw) throw new Error('DS_PRIVATE_KEY env var is empty - add it in Netlify env vars, then redeploy');
+  const m = raw.match(/-----BEGIN ([A-Z ]+?)-----([\s\S]*?)-----END \1-----/);
+  if (!m) throw new Error('DS_PRIVATE_KEY is not a PEM key - it must include the BEGIN/END PRIVATE KEY lines');
+  const body = m[2].replace(/[^A-Za-z0-9+/=]/g, '');
+  if (body.length < 800) throw new Error('DS_PRIVATE_KEY looks truncated - paste the full private key block');
+  return '-----BEGIN ' + m[1] + '-----\n' + body.match(/.{1,64}/g).join('\n') + '\n-----END ' + m[1] + '-----\n';
+}
+
 async function dsToken() {
   const now = Math.floor(Date.now() / 1000);
   const header = b64u(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
@@ -17,8 +28,7 @@ async function dsToken() {
   }));
   const signer = crypto.createSign('RSA-SHA256');
   signer.update(header + '.' + claims);
-  const key = (process.env.DS_PRIVATE_KEY || '').replace(/\\n/g, '\n');
-  const jwt = header + '.' + claims + '.' + signer.sign(key).toString('base64url');
+  const jwt = header + '.' + claims + '.' + signer.sign(pemKey()).toString('base64url');
   const r = await fetch('https://account.docusign.com/oauth/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
