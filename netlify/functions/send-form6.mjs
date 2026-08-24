@@ -16,20 +16,23 @@ function pemKey() {
   return '-----BEGIN ' + m[1] + '-----\n' + body.match(/.{1,64}/g).join('\n') + '\n-----END ' + m[1] + '-----\n';
 }
 
+const AUTH_HOST = () =>
+  (process.env.DS_BASE || '').includes('demo') ? 'account-d.docusign.com' : 'account.docusign.com';
+
 async function dsToken() {
   const now = Math.floor(Date.now() / 1000);
   const header = b64u(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
   const claims = b64u(JSON.stringify({
     iss: process.env.DS_INTEGRATION_KEY,
     sub: process.env.DS_USER_ID,
-    aud: 'account.docusign.com',
+    aud: AUTH_HOST(),
     iat: now, exp: now + 300,
     scope: 'signature impersonation',
   }));
   const signer = crypto.createSign('RSA-SHA256');
   signer.update(header + '.' + claims);
   const jwt = header + '.' + claims + '.' + signer.sign(pemKey()).toString('base64url');
-  const r = await fetch('https://account.docusign.com/oauth/token', {
+  const r = await fetch('https://' + AUTH_HOST() + '/oauth/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: 'grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=' + jwt,
@@ -93,7 +96,7 @@ export default async (req) => {
     };
 
     const token = await dsToken();
-    const base = (process.env.DS_BASE || 'https://au.docusign.net') +
+    const base = (process.env.DS_BASE || 'https://au.docusign.net').replace(/\/+$/, '') +
       '/restapi/v2.1/accounts/' + process.env.DS_ACCOUNT_ID + '/envelopes';
     const r = await fetch(base, {
       method: 'POST',
