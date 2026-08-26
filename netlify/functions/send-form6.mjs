@@ -52,16 +52,25 @@ const tab = (label, [pg, x, y], value) => ({
 });
 
 export default async (req) => {
+  const ALLOWED = [
+    'https://queenslandwaterconsultancy.com',
+    'https://www.queenslandwaterconsultancy.com',
+    'https://qwc-water-tools-form6.netlify.app',
+  ];
+  const origin = req.headers.get('origin') || '';
   const cors = {
-    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Origin': ALLOWED.includes(origin) ? origin : ALLOWED[0],
     'Access-Control-Allow-Headers': 'content-type,x-qwc-key',
     'Access-Control-Allow-Methods': 'POST,OPTIONS',
+    'Vary': 'Origin',
   };
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
   const out = (obj, status = 200) => Response.json(obj, { status, headers: cors });
   try {
     if (req.method !== 'POST') return out({ ok: false, error: 'POST only' }, 405);
-    if (process.env.QWC_SEND_KEY && req.headers.get('x-qwc-key') !== process.env.QWC_SEND_KEY)
+    if (!process.env.QWC_SEND_KEY)
+      return out({ ok: false, error: 'QWC_SEND_KEY env var not set - add it in Netlify, then redeploy' }, 500);
+    if (req.headers.get('x-qwc-key') !== process.env.QWC_SEND_KEY)
       return out({ ok: false, error: 'unauthorised' }, 401);
 
     const p = await req.json();
