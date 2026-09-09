@@ -1,7 +1,10 @@
-# Tells Netlify's function bundler (esbuild) not to strip out the headless-Chrome
-# binary files that @sparticuz/chromium ships — by default it only bundles JS and
-# discards "asset" files like these, which is exactly what caused the
-# "/var/task/netlify/bin does not exist" error.
+# Forces Netlify to actually run `npm install` before deploying — this site apparently
+# never needed that before (send-form6.mjs has no dependencies), so @sparticuz/chromium
+# was likely never being installed at all, which is why included_files had nothing to
+# copy. This [build] block makes the install step explicit and mandatory.
+[build]
+  command = "npm install"
+
 [functions]
   node_bundler = "esbuild"
 
