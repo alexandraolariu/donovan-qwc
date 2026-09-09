@@ -4,7 +4,7 @@
 // (via @sparticuz/chromium + puppeteer-core) — same engine, same output quality as
 // Chrome's own "Print to PDF". Not a screenshot; not a third-party paid API.
 //
-// Endpoint once deployed: https://<your-site-name>.netlify.app/.netlify/functions/render-pdf
+// Endpoint: https://qwc-water-tools-form6.netlify.app/.netlify/functions/render-pdf
 // Request:  POST { "html": "<!DOCTYPE html>..." }
 // Response: { "success": true, "pdf_base64": "..." }  (base64-encoded PDF bytes)
 
@@ -38,10 +38,17 @@ export const handler = async (event) => {
 
   let browser;
   try {
+    // Passing the path explicitly here — this is the actual fix. Netlify's bundler
+    // (esbuild) discards node_modules/@sparticuz/chromium's binary files by default;
+    // netlify.toml's included_files puts them back at this exact path under /var/task,
+    // and this line stops the library's own (unreliable, under this bundler)
+    // auto-detection from looking in the wrong place.
+    const executablePath = await chromium.executablePath('/var/task/node_modules/@sparticuz/chromium/bin');
+
     browser = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
+      executablePath,
       headless: chromium.headless,
     });
 
