@@ -8,6 +8,7 @@
 // Request:  POST { "html": "<!DOCTYPE html>..." }
 // Response: { "success": true, "pdf_base64": "..." }  (base64-encoded PDF bytes)
 
+import path from 'path';
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
 
@@ -38,12 +39,19 @@ export const handler = async (event) => {
 
   let browser;
   try {
-    // Passing the path explicitly here — this is the actual fix. Netlify's bundler
-    // (esbuild) discards node_modules/@sparticuz/chromium's binary files by default;
-    // netlify.toml's included_files puts them back at this exact path under /var/task,
-    // and this line stops the library's own (unreliable, under this bundler)
-    // auto-detection from looking in the wrong place.
+    // Netlify's bundler discards @sparticuz/chromium's binary/library files unless told
+    // to keep them (that's what netlify.toml's included_files does), so this path is
+    // where they actually land at runtime.
     const executablePath = await chromium.executablePath('/var/task/node_modules/@sparticuz/chromium/bin');
+
+    // The extracted Chromium binary ships with its own copies of a handful of shared
+    // libraries it needs (libnspr4.so etc.) sitting right next to it — but nothing tells
+    // the dynamic linker to look there by default, hence "cannot open shared object
+    // file". Adding that directory to LD_LIBRARY_PATH is the fix.
+    const chromiumDir = path.dirname(executablePath);
+    process.env.LD_LIBRARY_PATH = process.env.LD_LIBRARY_PATH
+      ? `${chromiumDir}:${process.env.LD_LIBRARY_PATH}`
+      : chromiumDir;
 
     browser = await puppeteer.launch({
       args: chromium.args,
