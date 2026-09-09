@@ -1,0 +1,9 @@
+# Tells Netlify's function bundler (esbuild) not to strip out the headless-Chrome
+# binary files that @sparticuz/chromium ships — by default it only bundles JS and
+# discards "asset" files like these, which is exactly what caused the
+# "/var/task/netlify/bin does not exist" error.
+[functions]
+  node_bundler = "esbuild"
+
+[functions."render-pdf"]
+  included_files = ["node_modules/@sparticuz/chromium/bin/**"]
