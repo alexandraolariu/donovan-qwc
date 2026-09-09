@@ -1,0 +1,8 @@
+{
+  "name": "donovan-qwc",
+  "private": true,
+  "dependencies": {
+    "@sparticuz/chromium": "^123.0.1",
+    "puppeteer-core": "^22.6.3"
+  }
+}
