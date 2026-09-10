@@ -1,8 +1,8 @@
 {
-  "name": "donovan-qwc",
+  "name": "aquaval-pdf-function",
   "private": true,
   "dependencies": {
-    "@sparticuz/chromium": "^123.0.1",
-    "puppeteer-core": "^22.6.3"
+    "puppeteer-core": "^23.0.0",
+    "@sparticuz/chromium": "^130.0.0"
   }
 }
