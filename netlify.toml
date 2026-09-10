@@ -1,14 +1,17 @@
 [functions]
-  node_bundler = "esbuild"
-  # @sparticuz/chromium ships its Chromium build as a separate compressed
-  # file that isn't picked up by default bundling — this makes sure it's
-  # included in the deployed function package.
+  # NOT esbuild — esbuild squashes @sparticuz/chromium's own module folder
+  # into the bundle, which breaks the __dirname-based path it uses
+  # internally to find its own Chromium binary files (this is what caused
+  # "input directory .../bin does not exist"). Netlify's default bundler
+  # keeps node_modules intact instead, so the package can find itself.
   included_files = ["node_modules/@sparticuz/chromium/**"]
 
 [functions."render-pdf"]
-  # Netlify's free/Pro synchronous function timeout ceiling. Cold-starting
-  # Chromium plus rendering can be tight against the default 10s — this
-  # requests the higher ceiling. (Actually raising the limit may require a
-  # paid Netlify plan; if this function still times out on your plan, that's
-  # the next thing to check in the Netlify dashboard under Functions settings.)
+  # Netlify's synchronous function timeout ceiling. Cold-starting Chromium
+  # plus rendering can be tight against the default 10s. NOTE: per current
+  # Netlify community reports, setting this alone does NOT raise the limit —
+  # it also requires (a) being on a paid Pro-or-higher plan, and (b) asking
+  # Netlify support to activate the 26s ceiling for this specific site. If
+  # the function still cuts off around 10s after the bin-path fix, that's
+  # the next step — a support request, not another code change.
   timeout = 26
