@@ -26,6 +26,20 @@
 
 const chromium = require('@sparticuz/chromium');
 const puppeteer = require('puppeteer-core');
+const path = require('path');
+
+/* @sparticuz/chromium's own auto-detection of where its bin/ folder lives
+   (used when executablePath() is called with no argument) relies on
+   __dirname-relative guessing that has proven unreliable in this deployment
+   environment (observed failure: "input directory /var/task/netlify/bin
+   does not exist" — a nonsense path that doesn't match the package's real
+   location). Sidestepping that by resolving the package's actual on-disk
+   location via Node's own module resolution and passing it in explicitly
+   removes the guesswork entirely. */
+function resolveChromiumBinDir(){
+  const pkgJsonPath = require.resolve('@sparticuz/chromium/package.json');
+  return path.join(path.dirname(pkgJsonPath), 'bin');
+}
 
 exports.handler = async (event) => {
   const cors = {
@@ -62,7 +76,7 @@ exports.handler = async (event) => {
       // knows exactly what Netlify's (Lambda-based) runtime needs.
       args: chromium.args,
       defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
+      executablePath: await chromium.executablePath(resolveChromiumBinDir()),
       headless: chromium.headless,
     });
 
