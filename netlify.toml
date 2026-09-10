@@ -1,12 +1,14 @@
-# Forces Netlify to actually run `npm install` before deploying — this site apparently
-# never needed that before (send-form6.mjs has no dependencies), so @sparticuz/chromium
-# was likely never being installed at all, which is why included_files had nothing to
-# copy. This [build] block makes the install step explicit and mandatory.
-[build]
-  command = "npm install"
-
 [functions]
   node_bundler = "esbuild"
+  # @sparticuz/chromium ships its Chromium build as a separate compressed
+  # file that isn't picked up by default bundling — this makes sure it's
+  # included in the deployed function package.
+  included_files = ["node_modules/@sparticuz/chromium/**"]
 
 [functions."render-pdf"]
-  included_files = ["node_modules/@sparticuz/chromium/bin/**"]
+  # Netlify's free/Pro synchronous function timeout ceiling. Cold-starting
+  # Chromium plus rendering can be tight against the default 10s — this
+  # requests the higher ceiling. (Actually raising the limit may require a
+  # paid Netlify plan; if this function still times out on your plan, that's
+  # the next thing to check in the Netlify dashboard under Functions settings.)
+  timeout = 26
